@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>南沙图书馆分馆分布图</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #333;
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 15px 0;
+            margin-bottom: 15px;
+            color: white;
+            position: relative;
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        
+        h1 i {
+            color: #FFD700;
+            font-size: 1.6rem;
+        }
+        
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            max-width: 90%;
+            margin: 0 auto;
+        }
+        
+        .map-container {
+            height: 65vh;
+            width: 100%;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+            position: relative;
+            background: #e9ecef;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+        }
+        
+        .info-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .info-title {
+            font-size: 1.3rem;
+            color: #1a2a6c;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-content {
+            font-size: 0.95rem;
+            color: #444;
+        }
+        
+        .info-content p {
+            margin-bottom: 10px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .info-card {
+            background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .info-card i {
+            font-size: 1.8rem;
+            color: #1a2a6c;
+            margin-bottom: 8px;
+        }
+        
+        .info-card h3 {
+            font-size: 1rem;
+            margin-bottom: 5px;
+            color: #1a2a6c;
+        }
+        
+        .info-card p {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        /* 弹窗样式 */
+        .modal-mask {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-container {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+        }
+        
+        .modal-container.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #1a2a6c, #3a5fc9);
+            color: white;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .modal-title {
+            font-size: 1.4rem;
+            margin: 0;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        .modal-body {
+            padding: 25px 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .library-img {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #1a2a6c, #3a5fc9);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .library-img i {
+            font-size: 4rem;
+            opacity: 0.7;
+        }
+        
+        .library-info {
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            display: flex;
+            margin-bottom: 12px;
+        }
+        
+        .info-item i {
+            width: 30px;
+            color: #1a2a6c;
+            font-size: 1.1rem;
+        }
+        
+        .info-item div {
+            flex: 1;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #1a2a6c;
+            margin-bottom: 3px;
+        }
+        
+        footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            padding: 20px 0;
+            margin-top: 10px;
+        }
+        
+        .map-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 15px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .map-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            color: #1a2a6c;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .map-btn:hover {
+            transform: scale(1.1);
+            background: #f0f5ff;
+        }
+        
+        .custom-marker {
+            background: #1a2a6c;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            transform: translate(-50%, -100%);
+            border: 2px solid white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .custom-marker:hover {
+            background: #3a5fc9;
+            transform: translate(-50%, -100%) scale(1.05);
+        }
+        
+        .custom-marker i {
+            color: #FFD700;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #1a2a6c;
+            border: 2px solid white;
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-body {
+                padding: 15px;
+            }
+            
+            .library-img {
+                height: 150px;
+            }
+            
+            .custom-marker {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-book-open"></i> 南沙图书馆分馆分布图</h1>
+            <p class="subtitle">点击地图上的标记查看各分馆详细信息</p>
+        </header>
+        
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-controls">
+                <button class="map-btn" id="resetBtn" title="重置地图视图">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color"></div>
+                    <span>图书馆分馆位置</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h2 class="info-title"><i class="fas fa-info-circle"></i> 南沙图书馆服务</h2>
+            <div class="info-content">
+                <p>南沙区图书馆网络覆盖全区，提供丰富的图书资源和现代化阅读空间。总馆位于南沙区市民广场，另有多个分馆分布在各个街道。</p>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-card">
+                    <i class="fas fa-book"></i>
+                    <h3>馆藏数量</h3>
+                    <p>50万+ 册</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-building"></i>
+                    <h3>分馆数量</h3>
+                    <p>10 个</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-users"></i>
+                    <h3>年接待读者</h3>
+                    <p>80万+ 人次</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-wifi"></i>
+                    <h3>免费服务</h3>
+                    <p>WiFi、自习室</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 弹窗结构 -->
+        <div class="modal-mask" id="modalMask">
+            <div class="modal-container" id="modalContainer">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="modalTitle">南沙图书馆总馆</h2>
+                    <button class="modal-close" id="modalCloseBtn">&times;</button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <div class="library-img">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="library-info">
+                        <div class="info-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <div class="info-label">地址</div>
+                                <div id="libraryAddress">南沙区凤凰大道与丰泽西路交叉口市民广场</div>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <div class="info-label">开放时间</div>
+                                <div id="libraryHours">周二至周日 9:00-21:00（周一闭馆）</div>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-phone-alt"></i>
+                            <div>
+                                <div class="info-label">联系电话</div>
+                                <div id="libraryPhone">020-12345678</div>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-book-reader"></i>
+                            <div>
+                                <div class="info-label">特色服务</div>
+                                <div id="libraryFeatures">24小时自助图书馆、儿童阅览区、创客空间</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2025 南沙区图书馆 | 数据仅供参考，请以官方信息为准</p>
+        </footer>
+    </div>
+
+    <!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const imageWidth = 7088;
+    const imageHeight = 8129;
+    const imageBounds = [[0, 0], [imageHeight, imageWidth]];
+
+    const map = L.map('map', {
+        crs: L.CRS.Simple,
+        minZoom: -2,
+        maxZoom: 2,
+        zoomControl: true
+    });
+
+    L.imageOverlay('nansha_map.jpg', imageBounds).addTo(map);
+    map.fitBounds(imageBounds);
+
+    const libraries = [
+        {
+            name: "南沙图书馆总馆",
+            x: 4400,
+            y: 6350,
+            address: "南沙蕉门河城市客厅，海滨路东侧，市民广场北侧",
+            hours: "上午9：00至下午21:00（逢周三闭馆））",
+            phone: "020-39279988",
+        },
+        {
+            name: "万顷沙镇分馆",
+            x: 5080,
+            y: 4430,
+            address: "广州市南沙区粤海大道十一涌段4号",
+            hours: "周一、二四、五上午9:00-12:00，下午14:00-17:30;周六、日9:00-17:00(逢周三闭馆);",
+            phone: "020-84944788",
+        },
+        {
+            name: "榄核镇分馆",
+            x: 1664,
+            y: 6880,
+            address: "广州市南沙区榄核镇新地路12号二楼",
+            hours: "周一、二、四、五上午9:00-12:00，下午14:00-17:30;周六、日9:00-17:00(逢周三闭馆)",
+            phone: "020-84929149",
+        },
+        {
+            name: "横沥镇分馆",
+            x: 3575,
+            y: 5408,
+            address: " 广州市南沙区横沥镇中环路54号",
+            hours: "周一、二、四、五上午9:00-12:00，下午14:00-17:30;周六、日9:00-17:00(周三闭馆)",
+            phone: "020-39912809",
+        },
+        {
+            name: "港湾街道分馆",
+            x: 4849,
+            y: 5608,
+            address: "广州市南沙区珠江中路29号",
+            hours: "周一、二、四、五上午9:00-12:00，下午14:00-17:30;周六、日9:00-17:00(逢周三闭馆)",
+            phone: "020-39090247",
+        },
+        {
+            name: "珠江街分馆",
+            x: 4380,
+            y: 5014,
+            address: "广州市南沙区珠江街珠江西一路38号珠江街道办事处侧全民健身中心5楼",
+            hours: "一、二、四、五上午9:00-12:00，下午14:00-17:30;周六、日9:00-17:00(逢周三闭馆)",
+            phone: "020-84524833",
+        },
+        {
+            name: "黄阁镇分馆",
+            x: 3754,
+            y: 6445,
+            address: "广州市南沙区黄阁大道南万科南方一街5号",
+            hours: "周一二、四、五上午9:00-12:00，下午14:00-17:30;周六、日9:00-17:00(逢周三闭馆)",
+            phone: "020-84682117",
+        },
+        {
+            name: "东涌镇分馆",
+            x: 3200,
+            y: 7556,
+            address: "广州南沙区东涌镇和乐一路10号",
+            hours: "周一、二、四、五上午9:00-12:00，下午14:00-17:30;周六、日9:00-17:00(逢周三闭馆)",
+            phone: "020-39010982",
+        },
+        {
+            name: "龙穴镇分馆",
+            x: 5639,
+            y: 4683,
+            address: "广州市南沙区龙穴路1号",
+            hours: "周一、二、四、五上午9:00-12:00，下午14:00-17:30;周六、日9:00-17:00(逢周三闭馆)",
+        },
+        {
+            name: "大岗镇分馆",
+            x: 2375,
+            y: 6110,
+            address: "广州市南沙区大岗镇民生路21号",
+            hours: "周一、二、四、五上午9:00-12:00，下午14:00-17:30;周六、日9:00-17:00(逢周三闭馆)",
+            phone: "020-84994618",
+        }
+    ];
+
+    // 获取DOM元素
+    const modalMask = document.getElementById('modalMask');
+    const modalContainer = document.getElementById('modalContainer');
+    const modalTitle = document.getElementById('modalTitle');
+    const libraryAddress = document.getElementById('libraryAddress');
+    const libraryHours = document.getElementById('libraryHours');
+    const libraryPhone = document.getElementById('libraryPhone');
+    const libraryFeatures = document.getElementById('libraryFeatures');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // 显示图书馆信息弹窗
+    function showLibraryInfo(library) {
+        modalTitle.textContent = library.name;
+        libraryAddress.textContent = library.address;
+        libraryHours.textContent = library.hours;
+        libraryPhone.textContent = library.phone;
+        libraryFeatures.textContent = library.features;
+
+        modalMask.style.display = 'flex';
+        setTimeout(() => {
+            modalContainer.classList.add('show');
+        }, 10);
+
+        map.setView([library.y, library.x], map.getZoom());
+    }
+
+    // 关闭弹窗
+    function closeModal() {
+        modalContainer.classList.remove('show');
+        setTimeout(() => {
+            modalMask.style.display = 'none';
+        }, 300);
+    }
+
+    // 重置地图视图
+    function resetMapView() {
+        map.fitBounds(imageBounds);
+    }
+
+    // 添加 Marker
+    libraries.forEach(lib => {
+        const marker = L.marker([lib.y, lib.x]).addTo(map);
+        marker.on('click', () => {
+            showLibraryInfo(lib);
+        });
+    });
+
+    // 初始化交互事件
+    document.addEventListener('DOMContentLoaded', () => {
+        resetBtn.addEventListener('click', resetMapView);
+        modalMask.addEventListener('click', (e) => {
+            if (e.target === modalMask) {
+                closeModal();
+            }
+        });
+        modalCloseBtn.addEventListener('click', closeModal);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalMask.style.display === 'flex') {
+                closeModal();
+            }
+        });
+
+        // 初始加载弹出总馆信息
+        setTimeout(() => {
+            showLibraryInfo(libraries[0]);
+        }, 800);
+    });
+</script>
+
+</body>
+</html>
