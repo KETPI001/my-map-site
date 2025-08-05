@@ -1,0 +1,52 @@
+const MAP_ID = '地图容器';
+const PINGWANG_ID = '弹窗';
+const LIBRARIES = [
+    { name: '南沙图书馆总馆', coords: { x: 113.19, y: 22.55 } },
+    { name: '万顷沙镇分馆', coords: { x: 113.20, y: 22.56 } },
+    { name: '黄阁镇分馆', coords: { x: 113.18, y: 22.54 } },
+    { name: '港湾街道分馆', coords: { x: 113.17, y: 22.53 } },
+    { name: '横沥镇分馆', coords: { x: 113.16, y: 22.52 } },
+    { name: '珠江街分馆', coords: { x: 113.15, y: 22.51 } },
+    { name: '东涌镇分馆', coords: { x: 113.14, y: 22.50 } },
+    { name: '新图书馆分馆', coords: { x: 113.13, y: 22.49 } },
+    { name: '大岗镇分馆', coords: { x: 113.12, y: 22.48 } },
+    { name: '龙穴镇分馆', coords: { x: 113.11, y: 22.47 } },
+    { name: '龙核镇分馆', coords: { x: 113.10, y: 22.46 } }
+];
+
+function showInfo(title, info) {
+    const popup = document.getElementById(PINGWANG_ID);
+    if (!popup) {
+        console.error(`Element with id '${PINGWANG_ID}' not found.`);
+        return;
+    }
+    popup.innerHTML = `
+        <h3>${title}</h3>
+        <p>${info}</p>
+    `;
+    popup.style.backgroundColor = '#fff';
+    popup.style.borderRadius = '5px';
+    popup.style.padding = '10px';
+    popup.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    popup.style.position = 'fixed';
+    popup.style.top = '50px';
+    popup.style.left = '0';
+    popup.style.zIndex = '2';
+    
+    const lastElem = document.documentElement.lastElementChild;
+    if (lastElem) {
+        const pos = lastElem.getBoundingClientRect();
+        popup.style.top = pos.top + 'px';
+        popup.style.left = pos.left + 'px';
+    } else {
+        // fallback position if lastElementChild is null
+        popup.style.top = '50px';
+        popup.style.left = '0';
+    }
+    
+    document.body.appendChild(popup);
+    
+    setTimeout(() => {
+        popup.remove();
+    }, 2000);
+}
